@@ -1,0 +1,15 @@
+-- show all skus where custom code matches item_titles code
+select  skus.`readable_name` sku_readable_name, skus.`custom_code`, it.title item_title
+from  skus skus, item_titles it
+where skus.`custom_code` = it.`sku_code_from_channel`
+;
+
+
+-- group sku code counts for table - skus_channel
+select  skus.`sku_code_on_channel` sku_code, count(*) count
+from  skus_channels skus, item_titles it
+where skus.`sku_code_on_channel` = it.`sku_code_from_channel`
+group by sku_code
+order by count desc
+;
+
