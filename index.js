@@ -2,11 +2,35 @@ var mysql = require("mysql");
 var natural = require("natural");
 var stringSimilarity = require('string-similarity');
 var fs = require('fs');
+var firebase = require("firebase");
+
+// Initialize Firebase
+var config = {
+  apiKey: "AIzaSyB4MnNBOjsF82dodcOmf3siQYiztnflmxY",
+  authDomain: "autocat-9a420.firebaseapp.com",
+  databaseURL: "https://autocat-9a420.firebaseio.com",
+  storageBucket: "autocat-9a420.appspot.com",
+  messagingSenderId: "498380667941"
+};
+
+firebase.initializeApp(config);
+// Get a reference to the database service
+var database = firebase.database();
+initFirebase();
+
+function initFirebase()
+{
+  database.ref("product_categories").set(null);
+  database.ref("item_titles").set(null);
+}
 
 var obj = {
    product_categories: [],
    item_titles:[]
 };
+
+var pcatmap = {};
+
 
 // set the local databse connection
 var connection = mysql.createConnection({
@@ -27,30 +51,82 @@ connection.connect(function(err){
 //get all the product categories
 var cats = null;
 var targetCats = [];
-connection.query('SELECT * from product_categories', function(err, rows, fields) {
+connection.query('SELECT * from product_categories order by parent_id, id', function(err, rows, fields) {
   if (!err)
   {
     console.log('# of categories fetched: ', rows.length);
-    for(var i=0; i<rows.length; i++)
-    {
-      //console.log(rows[i].breadcrumb);
-      targetCats.push(rows[i].title);
+    // for(var i=0; i<rows.length; i++)
+    // {
+    //   //console.log(rows[i].breadcrumb);
+    //   targetCats.push(rows[i].title);
 
-      //add data to obj.product_categories for generating JSON output to be imported into firebase
-      obj.product_categories.push({ id:rows[i].id, 
-                                  title:rows[i].title, 
-                                  breadcrumb:rows[i].breadcrumb, 
-                                  parent_id:rows[i].parent_id,
-                                  tree_code:rows[i].tree_code,
-                                  is_leaf: rows[i].is_leaf
-                                });
-    }
+    //   //add data to obj.product_categories for generating JSON output to be imported into firebase
+    //   obj.product_categories.push({ id:rows[i].id, 
+    //                               title:rows[i].title, 
+    //                               breadcrumb:rows[i].breadcrumb, 
+    //                               parent_id:rows[i].parent_id,
+    //                               tree_code:rows[i].tree_code,
+    //                               is_leaf: rows[i].is_leaf
+    //                             });
+    // }
 
     cats = rows;
+    createProductCategoryMap();
   }
   else
     console.log('Error while performing Query.');
 });
+
+//this is a conveneance function to process the category table and process it for importing into firebase
+function createProductCategoryMap()
+{
+  for(var i=0; i<cats.length; i++)
+  {
+    var id = cats[i].id;
+    var parent_id = cats[i].parent_id;
+    
+    //check if the parent node exists
+    if(parent_id === 0)
+    {
+      var sub_cats = {};
+      var sub_tree = {  id:cats[i].id, 
+                        title:cats[i].title, 
+                        breadcrumb:cats[i].breadcrumb, 
+                        parent_id:cats[i].parent_id,
+                        tree_code:cats[i].tree_code,
+                        is_leaf: cats[i].is_leaf,
+                        sub_cats: sub_cats
+                      };
+      pcatmap[id] = sub_tree;
+    }
+    //add the child under the parent
+    else
+    {
+      var sub_tree = pcatmap[parent_id];
+      if(sub_tree === undefined)
+      {
+        console.log(" *** Error in data table >> the parent_id is pointing to itself ****")
+        console.log(cats[i]);
+      }
+      sub_tree.sub_cats[id] = {  id:cats[i].id, 
+                        title:cats[i].title, 
+                        breadcrumb:cats[i].breadcrumb, 
+                        parent_id:cats[i].parent_id,
+                        tree_code:cats[i].tree_code,
+                        is_leaf: cats[i].is_leaf
+                      };
+
+      // sub_tree.sub_cats.push({  id:cats[i].id, 
+      //                   title:cats[i].title, 
+      //                   breadcrumb:cats[i].breadcrumb, 
+      //                   parent_id:cats[i].parent_id,
+      //                   tree_code:cats[i].tree_code,
+      //                   is_leaf: cats[i].is_leaf
+      //                 });
+    }
+  }
+  obj.product_categories = pcatmap;
+}
 
 //get all the skus
 var skus = null;
