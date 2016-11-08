@@ -16,7 +16,7 @@ var config = {
 firebase.initializeApp(config);
 // Get a reference to the database service
 var database = firebase.database();
-initFirebase();
+//initFirebase();
 
 function initFirebase()
 {
@@ -26,7 +26,7 @@ function initFirebase()
 
 var obj = {
    product_categories: [],
-   item_titles:[]
+   item_titles:{}
 };
 
 var pcatmap = {};
@@ -89,12 +89,12 @@ function createProductCategoryMap()
     if(parent_id === 0)
     {
       var sub_cats = {};
-      var sub_tree = {  id:cats[i].id, 
-                        title:cats[i].title, 
-                        breadcrumb:cats[i].breadcrumb, 
-                        parent_id:cats[i].parent_id,
-                        tree_code:cats[i].tree_code,
-                        is_leaf: cats[i].is_leaf,
+      var sub_tree = {  id: String(cats[i].id), 
+                        title: cats[i].title, 
+                        breadcrumb: cats[i].breadcrumb, 
+                        parent_id: String(cats[i].parent_id),
+                        tree_code: cats[i].tree_code,
+                        is_leaf: String(cats[i].is_leaf),
                         sub_cats: sub_cats
                       };
       pcatmap[id] = sub_tree;
@@ -108,12 +108,12 @@ function createProductCategoryMap()
         console.log(" *** Error in data table >> the parent_id is pointing to itself ****")
         console.log(cats[i]);
       }
-      sub_tree.sub_cats[id] = {  id:cats[i].id, 
-                        title:cats[i].title, 
-                        breadcrumb:cats[i].breadcrumb, 
-                        parent_id:cats[i].parent_id,
-                        tree_code:cats[i].tree_code,
-                        is_leaf: cats[i].is_leaf
+      sub_tree.sub_cats[id] = {  id: String(cats[i].id), 
+                        title: cats[i].title, 
+                        breadcrumb: cats[i].breadcrumb, 
+                        parent_id: String(cats[i].parent_id),
+                        tree_code: cats[i].tree_code,
+                        is_leaf: String(cats[i].is_leaf)
                       };
 
       // sub_tree.sub_cats.push({  id:cats[i].id, 
@@ -159,14 +159,21 @@ connection.query('SELECT * from item_titles', function(err, rows, fields) {
     {
       //console.log(rows[i]);
       //add data to obj.item_titles for generating JSON output to be imported into firebase
-      obj.item_titles.push({  id:rows[i].id, 
-                              title:rows[i].title, 
-                              sku_code_from_channel:rows[i].sku_code_from_channel, 
-                              company_id:rows[i].company_id,
-                              number:rows[i].number,
-                              category_id: -1
-                            });
+      // obj.item_titles.push({  id:rows[i].id, 
+      //                         title:rows[i].title, 
+      //                         sku_code_from_channel:rows[i].sku_code_from_channel, 
+      //                         company_id:rows[i].company_id,
+      //                         number:rows[i].number,
+      //                         category_id: -1
+      //                       });
 
+      obj.item_titles[rows[i].id] = {  id: String(rows[i].id), 
+                              title: rows[i].title, 
+                              sku_code_from_channel: rows[i].sku_code_from_channel, 
+                              company_id: String(rows[i].company_id),
+                              number: String(rows[i].number),
+                              category_id: String(-1)
+                            };
     }
 
     itemTitles = rows;
